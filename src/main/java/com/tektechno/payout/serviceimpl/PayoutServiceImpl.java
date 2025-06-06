@@ -381,6 +381,7 @@ public class PayoutServiceImpl implements PayoutService {
         // Save to history
         SendMoneyHistory sendMoneyHistory = new SendMoneyHistory();
         sendMoneyHistory.setBeneficiaryId(beneficiaryId);
+        sendMoneyHistory.setStatus(responseDto.getStatus());
         sendMoneyHistory.setOrderId(responseDto.getData().getOrderId());
         sendMoneyHistory.setCyrusOrderId(responseDto.getData().getCyrusOrderId());
         sendMoneyHistory.setCyrusId(responseDto.getData().getCyrus_id());
