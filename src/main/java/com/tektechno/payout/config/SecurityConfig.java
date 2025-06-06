@@ -61,6 +61,7 @@ public class SecurityConfig {
             authorizationManagerRequestMatcherRegistry
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers("/api/v1/callback/**").permitAll()
+                .requestMatchers("/api/v1/health-check/**").permitAll()
                 .requestMatchers("/api/v1/user/**").hasAnyAuthority("USER", "ADMIN", "SUPER_ADMIN")
                 .requestMatchers("/api/v1/payout/**").hasAnyAuthority("SUPER_ADMIN", "ADMIN")
                 .anyRequest().fullyAuthenticated());
