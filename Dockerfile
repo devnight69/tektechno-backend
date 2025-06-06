@@ -32,7 +32,7 @@ RUN useradd -ms /bin/bash tektechno
 COPY --from=build /home/gradle/src/build/libs/payout-0.0.1-SNAPSHOT.jar /home/tektechno/payout-0.0.1-SNAPSHOT.jar
 
 # Switch to the new user
-USER tecktechno
+USER tektechno
 
 # Set working directory
 WORKDIR /home/tektechno
