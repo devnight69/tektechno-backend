@@ -297,35 +297,34 @@ public class PayoutServiceImpl implements PayoutService {
 
       BeneficiaryDetailsDto response = objectMapper.readValue(apiResponse.getBody(), BeneficiaryDetailsDto.class);
 
-
-            Beneficiary beneficiary = new Beneficiary();
-            beneficiary.setBeneficiaryId(response.getData().getFirst().getBeneficiaryId());
-            beneficiary.setBeneType(response.getData().getFirst().getBeneType());
-            beneficiary.setBeneficiaryBankAccountNumber(response.getData().getFirst().getBankAccountNumber());
-            beneficiary.setBeneficiaryBankIfscCode(response.getData().getFirst().getBankIfscCode()); // Validate name != IFSC
-            beneficiary.setBeneficiaryBankName("");
-            beneficiary.setBeneficiaryName(response.getData().getFirst().getAccountHolderName());
-            beneficiary.setBeneficiaryEmail(response.getData().getFirst().getEmail());
-            beneficiary.setBeneficiaryMobileNumber(response.getData().getFirst().getPhone());
-            beneficiary.setBeneficiaryPan(response.getData().getFirst().getPan());
-            beneficiary.setBeneficiaryAadhaar(response.getData().getFirst().getAadhar());
-            String latLong = response.getData().getFirst().getLatLong();
-            if (latLong != null && latLong.contains(",")) {
-              String[] parts = latLong.split(",");
-              if (parts.length == 2) {
-                beneficiary.setLatitude(Long.valueOf(parts[0].trim()));
-                beneficiary.setLongitude(Long.valueOf(parts[1].trim()));
-              } else {
-                // Handle unexpected format
-                logger.warn("Invalid latLong format: {}", latLong);
-              }
-            } else {
-              // Handle null or missing latLong
-              logger.warn("latLong is null or does not contain ','");
-            }
-
-            beneficiary.setBeneficiaryAddress(response.getData().getFirst().getBeneficiaryAddress());
-            beneficiaryRepository.save(beneficiary);
+      //      Beneficiary beneficiary = new Beneficiary();
+      //      beneficiary.setBeneficiaryId(response.getData().getFirst().getBeneficiaryId());
+      //      beneficiary.setBeneType(response.getData().getFirst().getBeneType());
+      //      beneficiary.setBeneficiaryBankAccountNumber(response.getData().getFirst().getBankAccountNumber());
+      //      beneficiary.setBeneficiaryBankIfscCode(response.getData().getFirst().getBankIfscCode()); // Validate name != IFSC
+      //      beneficiary.setBeneficiaryBankName("");
+      //      beneficiary.setBeneficiaryName(response.getData().getFirst().getAccountHolderName());
+      //      beneficiary.setBeneficiaryEmail(response.getData().getFirst().getEmail());
+      //      beneficiary.setBeneficiaryMobileNumber(response.getData().getFirst().getPhone());
+      //      beneficiary.setBeneficiaryPan(response.getData().getFirst().getPan());
+      //      beneficiary.setBeneficiaryAadhaar(response.getData().getFirst().getAadhar());
+      //      String latLong = response.getData().getFirst().getLatLong();
+      //      if (latLong != null && latLong.contains(",")) {
+      //        String[] parts = latLong.split(",");
+      //        if (parts.length == 2) {
+      //          beneficiary.setLatitude(Long.valueOf(parts[0].trim()));
+      //          beneficiary.setLongitude(Long.valueOf(parts[1].trim()));
+      //        } else {
+      //          // Handle unexpected format
+      //          logger.warn("Invalid latLong format: {}", latLong);
+      //        }
+      //      } else {
+      //        // Handle null or missing latLong
+      //        logger.warn("latLong is null or does not contain ','");
+      //      }
+      //
+      //      beneficiary.setBeneficiaryAddress(response.getData().getFirst().getBeneficiaryAddress());
+      //      beneficiaryRepository.save(beneficiary);
 
       return baseResponse.successResponse(response);
 
