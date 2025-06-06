@@ -370,7 +370,7 @@ public class PayoutServiceImpl implements PayoutService {
       // Call external API
       logger.info("📡 Sending request to Cyrus API...");
       ResponseEntity<String> apiResponse = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
-      logger.debug("✅ Received response: {}", apiResponse.getBody());
+      logger.info("✅ Received response: {}", apiResponse.getBody());
 
       // Deserialize response
       SendMoneyResponseDto responseDto = objectMapper.readValue(apiResponse.getBody(), SendMoneyResponseDto.class);
