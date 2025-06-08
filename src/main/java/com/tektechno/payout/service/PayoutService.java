@@ -24,6 +24,7 @@ public interface PayoutService {
 
   public ResponseEntity<?> getBeneficiaryList(int pageNumber, int pageSize);
 
+  public ResponseEntity<?> getAllPayoutTransaction(int pageNumber, int pageSize);
 
 
 }

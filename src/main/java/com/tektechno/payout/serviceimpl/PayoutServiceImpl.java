@@ -526,5 +526,38 @@ public class PayoutServiceImpl implements PayoutService {
     }
   }
 
+  @Override
+  public ResponseEntity<?> getAllPayoutTransaction(int pageNumber, int pageSize) {
+    try {
+
+      logger.info("📥 Request received to fetch All Payment list. Page: {}, Size: {}", pageNumber, pageSize);
+
+      // Validate pagination inputs
+      if (pageNumber < 0) {
+        logger.warn("⚠️ Invalid page number In All Payout {} received. Resetting to 0.", pageNumber);
+        pageNumber = 0;
+      }
+
+      if (pageSize <= 0 || pageSize > 100) {
+        logger.warn("⚠️ Invalid page size In All Payout {} received. Resetting to default 10.", pageSize);
+        pageSize = 10;
+      }
+
+      Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+      Page<SendMoneyHistory> sendMoneyHistories = sendMoneyHistoryRepo.findAll(pageable);
+
+      if (sendMoneyHistories.isEmpty()) {
+        logger.info("ℹ️ No Payout Transaction found for the given page parameters.");
+        return baseResponse.successResponse("No beneficiaries found.", List.of());
+      }
+      logger.info("✅ Fetched {} Payout Transaction Details.", sendMoneyHistories.getNumberOfElements());
+      return baseResponse.successResponse(sendMoneyHistories.getContent());
+    } catch (Exception e) {
+      return baseResponse.errorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
+          "An unexpected error occurred while fetching transaction details");
+    }
+  }
+
 
 }

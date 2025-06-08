@@ -69,4 +69,10 @@ public class PayoutController {
     return payoutService.getBeneficiaryList(pageNumber, pageSize);
   }
 
+  @GetMapping("/all-payout-transaction")
+  public ResponseEntity<?> getAllPayoutTransaction(@RequestParam int pageNumber,
+                                                   @RequestParam int pageSize) {
+    return payoutService.getAllPayoutTransaction(pageNumber, pageSize);
+  }
+
 }
