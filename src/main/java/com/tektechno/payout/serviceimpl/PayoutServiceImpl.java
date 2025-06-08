@@ -191,8 +191,8 @@ public class PayoutServiceImpl implements PayoutService {
         beneficiary.setBeneficiaryId(responseDto.getData().getBeneficiaryId());
         beneficiary.setBeneType(requestDto.getBeneType());
         beneficiary.setBeneficiaryBankAccountNumber(requestDto.getBeneficiaryMobileNumber());
-        beneficiary.setBeneficiaryBankIfscCode(requestDto.getBeneficiaryName()); // Validate name != IFSC
-        beneficiary.setBeneficiaryBankName(requestDto.getBeneficiaryName());
+        beneficiary.setBeneficiaryBankIfscCode(requestDto.getBeneficiaryIfscCode()); // Validate name != IFSC
+        beneficiary.setBeneficiaryBankName(requestDto.getBeneficiaryBankName());
         beneficiary.setBeneficiaryName(requestDto.getBeneficiaryName());
         beneficiary.setBeneficiaryEmail(requestDto.getBeneficiaryEmail());
         beneficiary.setBeneficiaryMobileNumber(requestDto.getBeneficiaryMobileNumber());
