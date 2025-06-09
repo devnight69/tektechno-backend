@@ -159,7 +159,7 @@ public class PayoutServiceImpl implements PayoutService {
       formData.add("MerchantKey", cyrusPayoutApiKey);
       formData.add("MethodName", "GET_BENEFICIARY");
       formData.add("pay_type", "account_number");
-      formData.add("beneficiary_bank_account_number", requestDto.getBeneficiaryMobileNumber());
+      formData.add("beneficiary_bank_account_number", requestDto.getBeneficiaryAccountNumber());
       formData.add("beneficiary_bank_ifsc_code", requestDto.getBeneficiaryIfscCode());
       formData.add("beneficiary_name", requestDto.getBeneficiaryName());
       formData.add("beneficiary_email", requestDto.getBeneficiaryEmail());
