@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/payout")
@@ -73,6 +74,11 @@ public class PayoutController {
   public ResponseEntity<?> getAllPayoutTransaction(@RequestParam int pageNumber,
                                                    @RequestParam int pageSize) {
     return payoutService.getAllPayoutTransaction(pageNumber, pageSize);
+  }
+
+  @PostMapping("/beneficiaries/bulk-upload")
+  public ResponseEntity<?> uploadBulkBeneficiary(@RequestParam("file") MultipartFile file) {
+    return payoutService.uploadBulkBeneficiary(file);
   }
 
 }

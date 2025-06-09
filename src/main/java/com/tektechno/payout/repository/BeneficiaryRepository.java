@@ -11,4 +11,6 @@ public interface BeneficiaryRepository extends JpaRepository<Beneficiary, Long> 
 
   Optional<Beneficiary> findByBeneficiaryId(String beneficiaryId);
 
+  boolean existsByBeneficiaryBankAccountNumber(String beneficiaryBankAccountNumber);
+
 }

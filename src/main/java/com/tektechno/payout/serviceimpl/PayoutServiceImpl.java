@@ -3,6 +3,7 @@ package com.tektechno.payout.serviceimpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tektechno.payout.constant.CyrusApiConstant;
 import com.tektechno.payout.dto.request.AddBeneficiaryRequestDto;
+import com.tektechno.payout.dto.request.AddressRequestDto;
 import com.tektechno.payout.dto.request.SendMoneyRequestDto;
 import com.tektechno.payout.dto.response.AddBeneficiaryResponseDto;
 import com.tektechno.payout.dto.response.BeneficiaryDetailsDto;
@@ -13,9 +14,11 @@ import com.tektechno.payout.repository.BeneficiaryRepository;
 import com.tektechno.payout.repository.SendMoneyHistoryRepo;
 import com.tektechno.payout.response.BaseResponse;
 import com.tektechno.payout.service.PayoutService;
+import com.tektechno.payout.utilities.ExcelHelper;
 import com.tektechno.payout.utilities.StringUtils;
 import jakarta.transaction.Transactional;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -36,6 +39,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class PayoutServiceImpl implements PayoutService {
@@ -557,6 +561,67 @@ public class PayoutServiceImpl implements PayoutService {
       return baseResponse.errorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
           "An unexpected error occurred while fetching transaction details");
     }
+  }
+
+  @Override
+  public ResponseEntity<?> uploadBulkBeneficiary(MultipartFile file) {
+    try {
+      if (file.isEmpty()) {
+        return baseResponse.errorResponse(HttpStatus.BAD_REQUEST, "File is empty");
+      }
+
+      List<Map<String, String>> beneficiaries = ExcelHelper.readExcelFile(file);
+
+      if (beneficiaries.isEmpty()) {
+        return baseResponse.errorResponse(HttpStatus.BAD_REQUEST, "No beneficiaries found in the file");
+      }
+
+      saveBeneficiaryDetails(beneficiaries);
+
+      return baseResponse.successResponse("File uploaded successfully", beneficiaries);
+
+    } catch (Exception e) {
+      return baseResponse.errorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
+          "An unexpected error occurred while uploading the file");
+    }
+  }
+
+  private void saveBeneficiaryDetails(List<Map<String, String>> beneficiaries) {
+    beneficiaries.forEach(beneficiary -> {
+      String beneficiaryAccountNumber = beneficiary.get("Beneficiary A/c No.");
+      if (!StringUtils.isNotNullAndNotEmpty(beneficiaryAccountNumber)) {
+        logger.warn("Beneficiary account number is empty. Skipping...");
+        return;
+      }
+
+      if (beneficiaryRepository.existsByBeneficiaryBankAccountNumber(beneficiaryAccountNumber)) {
+        logger.warn("Beneficiary account number {} already exists in DB. Skipping...", beneficiaryAccountNumber);
+        return;
+      }
+
+      logger.info("Beneficiary account number {} does not exist in DB. Adding...", beneficiaryAccountNumber);
+
+      AddBeneficiaryRequestDto requestDto = new AddBeneficiaryRequestDto();
+      requestDto.setBeneficiaryAccountNumber(beneficiaryAccountNumber);
+      requestDto.setBeneficiaryName(StringUtils.isNotNullAndNotEmpty(beneficiary.get("Beneficiary Name")) ?
+          beneficiary.get("Beneficiary Name") : "");
+      requestDto.setBeneficiaryMobileNumber(StringUtils.isNotNullAndNotEmpty(beneficiary.get("Beneficiary Mobile No")) ?
+          beneficiary.get("Beneficiary Mobile No") : "");
+      requestDto.setBeneficiaryEmail(StringUtils.isNotNullAndNotEmpty(beneficiary.get("Beneficiary Email ID")) ?
+          beneficiary.get("Beneficiary Email ID") : "");
+      requestDto.setBeneficiaryIfscCode(StringUtils.isNotNullAndNotEmpty(beneficiary.get("IFSC Code")) ?
+          beneficiary.get("IFSC Code") : "");
+
+      requestDto.setBeneficiaryPanNumber("");
+      requestDto.setBeneficiaryAadhaarNumber("");
+      requestDto.setBeneficiaryBankName("");
+      requestDto.setBeneType("VENDOR");
+      requestDto.setLatitude(80L);
+      requestDto.setLongitude(27L);
+      requestDto.setAddress(new AddressRequestDto("", "", "", "", "", ""));
+        
+          addBeneficiary(requestDto);
+      });
   }
 
 

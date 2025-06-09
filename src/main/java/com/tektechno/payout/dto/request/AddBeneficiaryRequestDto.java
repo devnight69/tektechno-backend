@@ -32,10 +32,6 @@ public class AddBeneficiaryRequestDto {
   @Pattern(regexp = "\\d{12}", message = "Aadhaar number must be 12 digits")
   private String beneficiaryAadhaarNumber;
 
-  @NotBlank(message = "Address is required")
-  @Size(max = 255, message = "Address must be less than 255 characters")
-  private String beneficiaryAddress;
-
   @NotBlank(message = "Bank name is required")
   @Size(max = 100, message = "Bank name must be less than 100 characters")
   private String beneficiaryBankName;
