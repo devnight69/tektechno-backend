@@ -180,7 +180,7 @@ public class PayoutServiceImpl implements PayoutService {
       headers.setContentType(MediaType.MULTIPART_FORM_DATA);
       HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(formData, headers);
 
-      logger.debug("Sending request to Cyrus API with payload: {}", formData);
+      logger.info("Sending request to Cyrus API with payload: {}", formData);
 
       // Make API call
       ResponseEntity<String> apiResponse = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
