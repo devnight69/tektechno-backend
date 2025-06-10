@@ -1,6 +1,7 @@
 package com.tektechno.payout.controller;
 
 import com.tektechno.payout.dto.request.AddBeneficiaryRequestDto;
+import com.tektechno.payout.dto.request.AddBulkBeneficiaryRequestDto;
 import com.tektechno.payout.dto.request.SendMoneyRequestDto;
 import com.tektechno.payout.service.PayoutService;
 import jakarta.validation.Valid;
@@ -77,8 +78,9 @@ public class PayoutController {
   }
 
   @PostMapping("/beneficiaries/bulk-upload")
-  public ResponseEntity<?> uploadBulkBeneficiary(@RequestParam("file") MultipartFile file) {
-    return payoutService.uploadBulkBeneficiary(file);
+  public ResponseEntity<?> uploadBulkBeneficiary(@RequestParam("file") MultipartFile file
+      , @Valid @RequestBody AddBulkBeneficiaryRequestDto addBulkBeneficiaryRequestDto) {
+    return payoutService.uploadBulkBeneficiary(file, addBulkBeneficiaryRequestDto);
   }
 
 }

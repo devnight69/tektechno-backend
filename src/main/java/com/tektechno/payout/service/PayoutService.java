@@ -1,6 +1,7 @@
 package com.tektechno.payout.service;
 
 import com.tektechno.payout.dto.request.AddBeneficiaryRequestDto;
+import com.tektechno.payout.dto.request.AddBulkBeneficiaryRequestDto;
 import com.tektechno.payout.dto.request.SendMoneyRequestDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,7 +28,8 @@ public interface PayoutService {
 
   public ResponseEntity<?> getAllPayoutTransaction(int pageNumber, int pageSize);
 
-  public ResponseEntity<?> uploadBulkBeneficiary( MultipartFile file);
+  public ResponseEntity<?> uploadBulkBeneficiary(MultipartFile file,
+                                                 AddBulkBeneficiaryRequestDto addBulkBeneficiaryRequestDto);
 
 
 }

@@ -3,7 +3,7 @@ package com.tektechno.payout.serviceimpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tektechno.payout.constant.CyrusApiConstant;
 import com.tektechno.payout.dto.request.AddBeneficiaryRequestDto;
-import com.tektechno.payout.dto.request.AddressRequestDto;
+import com.tektechno.payout.dto.request.AddBulkBeneficiaryRequestDto;
 import com.tektechno.payout.dto.request.SendMoneyRequestDto;
 import com.tektechno.payout.dto.response.AddBeneficiaryResponseDto;
 import com.tektechno.payout.dto.response.BeneficiaryDetailsDto;
@@ -564,7 +564,8 @@ public class PayoutServiceImpl implements PayoutService {
   }
 
   @Override
-  public ResponseEntity<?> uploadBulkBeneficiary(MultipartFile file) {
+  public ResponseEntity<?> uploadBulkBeneficiary(MultipartFile file,
+                                                 AddBulkBeneficiaryRequestDto addBulkBeneficiaryRequestDto) {
     try {
       if (file.isEmpty()) {
         return baseResponse.errorResponse(HttpStatus.BAD_REQUEST, "File is empty");
@@ -576,7 +577,7 @@ public class PayoutServiceImpl implements PayoutService {
         return baseResponse.errorResponse(HttpStatus.BAD_REQUEST, "No beneficiaries found in the file");
       }
 
-      saveBeneficiaryDetails(beneficiaries);
+      saveBeneficiaryDetails(beneficiaries, addBulkBeneficiaryRequestDto);
 
       return baseResponse.successResponse("File uploaded successfully", beneficiaries);
 
@@ -586,7 +587,8 @@ public class PayoutServiceImpl implements PayoutService {
     }
   }
 
-  private void saveBeneficiaryDetails(List<Map<String, String>> beneficiaries) {
+  private void saveBeneficiaryDetails(List<Map<String, String>> beneficiaries,
+                                      AddBulkBeneficiaryRequestDto addBulkBeneficiaryRequestDto) {
     beneficiaries.forEach(beneficiary -> {
       String beneficiaryAccountNumber = beneficiary.get("Beneficiary A/c No.");
       if (!StringUtils.isNotNullAndNotEmpty(beneficiaryAccountNumber)) {
@@ -606,22 +608,22 @@ public class PayoutServiceImpl implements PayoutService {
       requestDto.setBeneficiaryName(StringUtils.isNotNullAndNotEmpty(beneficiary.get("Beneficiary Name")) ?
           beneficiary.get("Beneficiary Name") : "");
       requestDto.setBeneficiaryMobileNumber(StringUtils.isNotNullAndNotEmpty(beneficiary.get("Beneficiary Mobile No")) ?
-          beneficiary.get("Beneficiary Mobile No") : "");
+          beneficiary.get("Beneficiary Mobile No") : addBulkBeneficiaryRequestDto.getBeneficiaryMobileNumber());
       requestDto.setBeneficiaryEmail(StringUtils.isNotNullAndNotEmpty(beneficiary.get("Beneficiary Email ID")) ?
-          beneficiary.get("Beneficiary Email ID") : "");
+          beneficiary.get("Beneficiary Email ID") : addBulkBeneficiaryRequestDto.getBeneficiaryEmail());
       requestDto.setBeneficiaryIfscCode(StringUtils.isNotNullAndNotEmpty(beneficiary.get("IFSC Code")) ?
           beneficiary.get("IFSC Code") : "");
 
-      requestDto.setBeneficiaryPanNumber("");
-      requestDto.setBeneficiaryAadhaarNumber("");
-      requestDto.setBeneficiaryBankName("");
-      requestDto.setBeneType("VENDOR");
-      requestDto.setLatitude(80L);
-      requestDto.setLongitude(27L);
-      requestDto.setAddress(new AddressRequestDto("", "", "", "", "", ""));
-        
-          addBeneficiary(requestDto);
-      });
+      requestDto.setBeneficiaryPanNumber(addBulkBeneficiaryRequestDto.getBeneficiaryPanNumber());
+      requestDto.setBeneficiaryAadhaarNumber(addBulkBeneficiaryRequestDto.getBeneficiaryAadhaarNumber());
+      requestDto.setBeneficiaryBankName(addBulkBeneficiaryRequestDto.getBeneficiaryBankName());
+      requestDto.setBeneType(addBulkBeneficiaryRequestDto.getBeneType());
+      requestDto.setLatitude(addBulkBeneficiaryRequestDto.getLatitude());
+      requestDto.setLongitude(addBulkBeneficiaryRequestDto.getLongitude());
+      requestDto.setAddress(addBulkBeneficiaryRequestDto.getAddress());
+
+      addBeneficiary(requestDto);
+    });
   }
 
 
