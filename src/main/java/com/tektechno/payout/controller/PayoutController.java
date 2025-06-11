@@ -7,16 +7,19 @@ import com.tektechno.payout.service.PayoutService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/payout")
+@Validated
 public class PayoutController {
 
   @Autowired
@@ -78,9 +81,11 @@ public class PayoutController {
   }
 
   @PostMapping("/beneficiaries/bulk-upload")
-  public ResponseEntity<?> uploadBulkBeneficiary(@RequestParam("file") MultipartFile file
-      , @Valid @RequestBody AddBulkBeneficiaryRequestDto addBulkBeneficiaryRequestDto) {
+  public ResponseEntity<?> uploadBulkBeneficiary(
+      @RequestPart("file") MultipartFile file,
+      @Valid @RequestPart("data") AddBulkBeneficiaryRequestDto addBulkBeneficiaryRequestDto) {
     return payoutService.uploadBulkBeneficiary(file, addBulkBeneficiaryRequestDto);
   }
+
 
 }
