@@ -17,6 +17,7 @@ import com.tektechno.payout.service.PayoutService;
 import com.tektechno.payout.utilities.ExcelHelper;
 import com.tektechno.payout.utilities.StringUtils;
 import jakarta.transaction.Transactional;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -441,7 +442,12 @@ public class PayoutServiceImpl implements PayoutService {
 
       logger.info("✅ Fetched {} transaction(s) for Beneficiary ID: {}",
           sendMoneyHistories.getNumberOfElements(), beneficiaryId);
-      return baseResponse.successResponse(sendMoneyHistories.getContent());
+
+      Map<String, Object> response = new HashMap<>();
+      response.put("transactions", sendMoneyHistories.getContent());
+      response.put("totalPages", sendMoneyHistories.getTotalPages());
+      response.put("totalElements", sendMoneyHistories.getTotalElements());
+      return baseResponse.successResponse(response);
 
     } catch (Exception e) {
       logger.error("❌ Exception occurred while fetching transaction details for beneficiary ID: {}", beneficiaryId, e);
@@ -519,7 +525,13 @@ public class PayoutServiceImpl implements PayoutService {
       }
 
       logger.info("✅ Fetched {} beneficiary record(s).", beneficiaries.getNumberOfElements());
-      return baseResponse.successResponse(beneficiaries.getContent());
+
+      Map<String, Object> response = new HashMap<>();
+      response.put("beneficiaries", beneficiaries.getContent());
+      response.put("totalPages", beneficiaries.getTotalPages());
+      response.put("totalElements", beneficiaries.getTotalElements());
+
+      return baseResponse.successResponse(response);
 
     } catch (Exception e) {
       logger.error("❌ Exception occurred while fetching beneficiary list", e);
@@ -556,7 +568,11 @@ public class PayoutServiceImpl implements PayoutService {
         return baseResponse.successResponse("No beneficiaries found.", List.of());
       }
       logger.info("✅ Fetched {} Payout Transaction Details.", sendMoneyHistories.getNumberOfElements());
-      return baseResponse.successResponse(sendMoneyHistories.getContent());
+      Map<String, Object> response = new HashMap<>();
+      response.put("transactions", sendMoneyHistories.getContent());
+      response.put("totalPages", sendMoneyHistories.getTotalPages());
+      response.put("totalElements", sendMoneyHistories.getTotalElements());
+      return baseResponse.successResponse(response);
     } catch (Exception e) {
       return baseResponse.errorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
           "An unexpected error occurred while fetching transaction details");
