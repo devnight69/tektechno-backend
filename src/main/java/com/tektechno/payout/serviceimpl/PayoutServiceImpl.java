@@ -608,13 +608,16 @@ public class PayoutServiceImpl implements PayoutService {
       requestDto.setBeneficiaryName(StringUtils.isNotNullAndNotEmpty(beneficiary.get("Beneficiary Name")) ?
           beneficiary.get("Beneficiary Name") : "");
       requestDto.setBeneficiaryMobileNumber(StringUtils.isNotNullAndNotEmpty(beneficiary.get("Beneficiary Mobile No")) ?
-          beneficiary.get("Beneficiary Mobile No") : addBulkBeneficiaryRequestDto.getBeneficiaryMobileNumber());
+          beneficiary.get("Beneficiary Mobile No") : "");
       requestDto.setBeneficiaryEmail(StringUtils.isNotNullAndNotEmpty(beneficiary.get("Beneficiary Email ID")) ?
           beneficiary.get("Beneficiary Email ID") : addBulkBeneficiaryRequestDto.getBeneficiaryEmail());
       requestDto.setBeneficiaryIfscCode(StringUtils.isNotNullAndNotEmpty(beneficiary.get("IFSC Code")) ?
           beneficiary.get("IFSC Code") : "");
 
-      requestDto.setBeneficiaryPanNumber(addBulkBeneficiaryRequestDto.getBeneficiaryPanNumber());
+      requestDto.setBeneficiaryPanNumber(StringUtils.isNotNullAndNotEmpty(beneficiary.get("Pan No")) ?
+          beneficiary.get("Pan No") : "");
+
+      // requestDto.setBeneficiaryPanNumber(addBulkBeneficiaryRequestDto.getBeneficiaryPanNumber());
       requestDto.setBeneficiaryAadhaarNumber(addBulkBeneficiaryRequestDto.getBeneficiaryAadhaarNumber());
       requestDto.setBeneficiaryBankName(addBulkBeneficiaryRequestDto.getBeneficiaryBankName());
       requestDto.setBeneType(addBulkBeneficiaryRequestDto.getBeneType());
