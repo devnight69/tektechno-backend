@@ -17,8 +17,8 @@ public class AddBulkBeneficiaryRequestDto {
 //  @Pattern(regexp = RegexConstant.MOBILE_NUMBER_REGEX, message = "Invalid mobile number")
   private String beneficiaryMobileNumber;
 
-  @Size(max = 100, message = "Email must be less than 100 characters")
-  @Pattern(regexp = RegexConstant.EMAIL_REGEX, message = "Invalid email address")
+//  @Size(max = 100, message = "Email must be less than 100 characters")
+//  @Pattern(regexp = RegexConstant.EMAIL_REGEX, message = "Invalid email address")
   private String beneficiaryEmail;
 
 //  @Pattern(regexp = "[A-Z]{5}[0-9]{4}[A-Z]{1}", message = "Invalid PAN number")
