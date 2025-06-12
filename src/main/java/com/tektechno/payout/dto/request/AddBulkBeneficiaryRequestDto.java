@@ -13,15 +13,15 @@ import lombok.Data;
 @Data
 public class AddBulkBeneficiaryRequestDto {
 
-  @NotBlank(message = "Beneficiary mobile number is required")
-  @Pattern(regexp = RegexConstant.MOBILE_NUMBER_REGEX, message = "Invalid mobile number")
+//  @NotBlank(message = "Beneficiary mobile number is required")
+//  @Pattern(regexp = RegexConstant.MOBILE_NUMBER_REGEX, message = "Invalid mobile number")
   private String beneficiaryMobileNumber;
 
   @Size(max = 100, message = "Email must be less than 100 characters")
   @Pattern(regexp = RegexConstant.EMAIL_REGEX, message = "Invalid email address")
   private String beneficiaryEmail;
 
-  @Pattern(regexp = "[A-Z]{5}[0-9]{4}[A-Z]{1}", message = "Invalid PAN number")
+//  @Pattern(regexp = "[A-Z]{5}[0-9]{4}[A-Z]{1}", message = "Invalid PAN number")
   private String beneficiaryPanNumber;
 
   @Pattern(regexp = "\\d{12}", message = "Aadhaar number must be 12 digits")
