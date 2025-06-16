@@ -7,9 +7,11 @@ import com.tektechno.payout.dto.request.AddBulkBeneficiaryRequestDto;
 import com.tektechno.payout.dto.request.SendMoneyRequestDto;
 import com.tektechno.payout.dto.response.AddBeneficiaryResponseDto;
 import com.tektechno.payout.dto.response.BeneficiaryDetailsDto;
+import com.tektechno.payout.dto.response.SendMoneyHistoryResponseDto;
 import com.tektechno.payout.dto.response.SendMoneyResponseDto;
 import com.tektechno.payout.model.Beneficiary;
 import com.tektechno.payout.model.SendMoneyHistory;
+import com.tektechno.payout.projection.BeneficiaryIdNameProjection;
 import com.tektechno.payout.repository.BeneficiaryRepository;
 import com.tektechno.payout.repository.SendMoneyHistoryRepo;
 import com.tektechno.payout.response.BaseResponse;
@@ -17,11 +19,16 @@ import com.tektechno.payout.service.PayoutService;
 import com.tektechno.payout.utilities.ExcelHelper;
 import com.tektechno.payout.utilities.StringUtils;
 import jakarta.transaction.Transactional;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -569,7 +576,7 @@ public class PayoutServiceImpl implements PayoutService {
       }
       logger.info("✅ Fetched {} Payout Transaction Details.", sendMoneyHistories.getNumberOfElements());
       Map<String, Object> response = new HashMap<>();
-      response.put("transactions", sendMoneyHistories.getContent());
+      response.put("transactions", createSendMoneyHistoryResponseDto(sendMoneyHistories.getContent()));
       response.put("totalPages", sendMoneyHistories.getTotalPages());
       response.put("totalElements", sendMoneyHistories.getTotalElements());
       return baseResponse.successResponse(response);
@@ -643,6 +650,34 @@ public class PayoutServiceImpl implements PayoutService {
 
       addBeneficiary(requestDto);
     });
+  }
+
+
+  private List<SendMoneyHistoryResponseDto> createSendMoneyHistoryResponseDto(List<SendMoneyHistory> sendMoneyHistories) {
+    List<SendMoneyHistoryResponseDto> responseDtos = new ArrayList<>();
+
+    // 1. Collect all beneficiary IDs
+    Set<String> beneficiaryIds = sendMoneyHistories.stream()
+        .map(SendMoneyHistory::getBeneficiaryId)
+        .collect(Collectors.toSet());
+
+    // 2. Fetch all names in one query into a Map
+    Map<String, String> beneficiaryNameMap = findBeneficiaryNamesByBeneficiaryIds(beneficiaryIds);
+
+    // 3. Map entities to DTOs
+    for (SendMoneyHistory history : sendMoneyHistories) {
+      SendMoneyHistoryResponseDto dto = objectMapper.convertValue(history, SendMoneyHistoryResponseDto.class);
+      dto.setBeneficiaryName(beneficiaryNameMap.get(history.getBeneficiaryId()));
+      responseDtos.add(dto);
+    }
+
+    return responseDtos;
+  }
+
+  private Map<String, String> findBeneficiaryNamesByBeneficiaryIds(Set<String> beneficiaryIds) {
+    return beneficiaryRepository
+        .findAllByBeneficiaryIdIn(beneficiaryIds).stream()
+        .collect(Collectors.toMap(BeneficiaryIdNameProjection::getId, BeneficiaryIdNameProjection::getName));
   }
 
 
