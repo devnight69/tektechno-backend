@@ -50,7 +50,7 @@ public class BalanceServiceImpl implements BalanceService {
       logger.info("Initiating GET request to Cyrus Get Balance API: {}", url);
 
       HttpHeaders headers = new HttpHeaders();
-      headers.setContentType(MediaType.ALL);
+      headers.setContentType(MediaType.APPLICATION_JSON);
       HttpEntity<?> requestEntity = new HttpEntity<>(headers);
 
       logger.debug("Request Headers: {}", headers);
