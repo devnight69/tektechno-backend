@@ -25,7 +25,7 @@ public class BalanceServiceImpl implements BalanceService {
   @Value("${cyrus-api-member-id}")
   private String cyrusApiMemberId;
 
-  @Value("${}cyrus-recharge-api-key")
+  @Value("${cyrus-recharge-api-key}")
   private String cyrusRechargeApiKey;
 
   @Value("${cyrus-recharge-api-endpoint}")
