@@ -25,6 +25,7 @@ public class WalletBalanceServiceImpl implements WalletBalanceService {
   public boolean updateWalletBalance(String memberId, double amount) {
     try {
       int updatedRows = walletBalanceRepository.updateBalanceByMemberId(memberId, amount);
+      logger.info("Updated wallet balance for memberId: {}. Updated rows: {}", memberId, updatedRows);
       return updatedRows > 0;
     } catch (Exception e) {
       logger.error("Exception occurred while updating wallet balance for memberId: {}. Error: {}",
@@ -37,11 +38,15 @@ public class WalletBalanceServiceImpl implements WalletBalanceService {
   public ResponseEntity<?> getWalletBalance(String memberId) {
     try {
       double balance = walletBalanceRepository.findBalanceByMemberId(memberId);
+      logger.info("✅ Fetched wallet balance for memberId: {} | Balance: {}", memberId, balance);
       return baseResponse.successResponse(balance);
     } catch (Exception e) {
-      return baseResponse.errorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
+      logger.error("❌ Error fetching wallet balance for memberId: {} | Exception: {}", memberId, e.getMessage(), e);
+      return baseResponse.errorResponse(
+          HttpStatus.INTERNAL_SERVER_ERROR,
           "An unexpected error occurred while fetching wallet balance for memberId: "
-              + memberId + ". Please try again later.");
+              + memberId + ". Please try again later."
+      );
     }
   }
 }
