@@ -25,7 +25,8 @@ import lombok.Setter;
     indexes = {
         @Index(name = "idx_users_created_at", columnList = "created_at"),
         @Index(name = "idx_users_mobile_number", columnList = "mobile_number"),
-        @Index(name = "idx_users_email", columnList = "email")
+        @Index(name = "idx_users_email", columnList = "email"),
+        @Index(name = "idx_users_member_id", columnList = "member_id"),
     })
 public class Users {
 
@@ -34,6 +35,9 @@ public class Users {
   @Column(name = "id", nullable = false)
   @JsonIgnore
   private Long id;
+
+  @Column(name = "member_id")
+  private String memberId;
 
   @Column(name = "full_name", nullable = false)
   private String fullName;

@@ -6,6 +6,7 @@ import com.tektechno.payout.dto.response.SendMoneyResponseDto;
 import com.tektechno.payout.model.SendMoneyHistory;
 import com.tektechno.payout.repository.SendMoneyHistoryRepo;
 import com.tektechno.payout.service.CallbackService;
+import com.tektechno.payout.service.WalletBalanceService;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
@@ -19,6 +20,9 @@ public class CallbackServiceImpl implements CallbackService {
 
   @Autowired
   private SendMoneyHistoryRepo sendMoneyHistoryRepo;
+
+  @Autowired
+  private WalletBalanceService walletBalanceService;
 
   @Autowired
   private ObjectMapper objectMapper;
@@ -57,6 +61,15 @@ public class CallbackServiceImpl implements CallbackService {
         // Save updated record
         sendMoneyHistoryRepo.save(sendMoneyHistory);
         logger.info("SendMoneyHistory record updated and saved for orderId: {}", webhookData.getOrderId());
+
+        String memberId = sendMoneyHistory.getMemberId();
+
+        if (walletBalanceService.updateWalletBalance(memberId, Double.parseDouble(webhookData.getOpening_bal()))) {
+          logger.info("Successfully updated wallet balance for memberId: {}", memberId);
+        } else {
+          logger.error("Failed to update wallet balance for memberId: {}", memberId);
+        }
+
       } else {
         logger.warn("No SendMoneyHistory found for orderId: {}", webhookData.getOrderId());
       }

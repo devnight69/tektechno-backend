@@ -22,7 +22,8 @@ import lombok.Setter;
     indexes = {
         @Index(name = "idx_send_money_history_created_at", columnList = "created_at"),
         @Index(name = "idx_send_money_history_beneficiary_id", columnList = "beneficiary_id"),
-        @Index(name = "idx_send_money_history_order_id", columnList = "order_id")
+        @Index(name = "idx_send_money_history_order_id", columnList = "order_id"),
+        @Index(name = "idx_send_money_history_member_id", columnList = "member_id"),
     })
 public class SendMoneyHistory {
 
@@ -30,6 +31,9 @@ public class SendMoneyHistory {
   @GeneratedValue(strategy = GenerationType.AUTO)
   @Column(name = "id", nullable = false)
   private Long id;
+
+  @Column(name = "member_id")
+  private String memberId;
 
   @Column(name = "status")
   private String status;

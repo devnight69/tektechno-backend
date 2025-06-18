@@ -12,5 +12,6 @@ public class JwtPayloadDto {
   private Boolean active;
   private String userType;
   private String tokenType;
+  private String memberId;
 
 }

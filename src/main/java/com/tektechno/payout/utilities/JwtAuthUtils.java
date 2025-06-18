@@ -153,6 +153,7 @@ public class JwtAuthUtils {
     payload.put("active", jwtPayloadDto.getActive());
     payload.put("userType", jwtPayloadDto.getUserType());
     payload.put("tokenType", jwtPayloadDto.getTokenType());
+    payload.put("memberId", jwtPayloadDto.getMemberId());
     return payload;
   }
 
@@ -185,6 +186,7 @@ public class JwtAuthUtils {
     dto.setActive((Boolean) claims.get("active"));
     dto.setUserType((String) claims.get("userType"));
     dto.setTokenType((String) claims.get("tokenType"));
+    dto.setMemberId((String) claims.get("memberId"));
     return dto;
   }
 

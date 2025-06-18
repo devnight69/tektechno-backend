@@ -11,15 +11,16 @@ import com.tektechno.payout.dto.response.SendMoneyHistoryResponseDto;
 import com.tektechno.payout.dto.response.SendMoneyResponseDto;
 import com.tektechno.payout.model.Beneficiary;
 import com.tektechno.payout.model.SendMoneyHistory;
+import com.tektechno.payout.model.WalletBalance;
 import com.tektechno.payout.projection.BeneficiaryIdNameProjection;
 import com.tektechno.payout.repository.BeneficiaryRepository;
 import com.tektechno.payout.repository.SendMoneyHistoryRepo;
+import com.tektechno.payout.repository.WalletBalanceRepository;
 import com.tektechno.payout.response.BaseResponse;
 import com.tektechno.payout.service.PayoutService;
 import com.tektechno.payout.utilities.ExcelHelper;
 import com.tektechno.payout.utilities.StringUtils;
 import jakarta.transaction.Transactional;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,7 +29,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,6 +69,9 @@ public class PayoutServiceImpl implements PayoutService {
 
   @Autowired
   private SendMoneyHistoryRepo sendMoneyHistoryRepo;
+
+  @Autowired
+  private WalletBalanceRepository walletBalanceRepository;
 
   @Autowired
   private ObjectMapper objectMapper;
@@ -200,6 +203,7 @@ public class PayoutServiceImpl implements PayoutService {
       // Process response
       if ("SUCCESS".equalsIgnoreCase(responseDto.getData().getStatus())) {
         Beneficiary beneficiary = new Beneficiary();
+        beneficiary.setMemberId(cyrusApiMemberId);
         beneficiary.setBeneficiaryId(responseDto.getData().getBeneficiaryId());
         beneficiary.setBeneType(requestDto.getBeneType());
         beneficiary.setBeneficiaryBankAccountNumber(requestDto.getBeneficiaryAccountNumber());
@@ -392,6 +396,7 @@ public class PayoutServiceImpl implements PayoutService {
 
         // Save to history
         SendMoneyHistory sendMoneyHistory = new SendMoneyHistory();
+        sendMoneyHistory.setMemberId(cyrusApiMemberId);
         sendMoneyHistory.setBeneficiaryId(beneficiaryId);
         sendMoneyHistory.setStatus(responseDto.getStatus());
         sendMoneyHistory.setOrderId(responseDto.getData().getOrderId());
@@ -403,6 +408,15 @@ public class PayoutServiceImpl implements PayoutService {
         sendMoneyHistory.setChargedAmount(responseDto.getData().getCharged_amt());
 
         sendMoneyHistoryRepo.save(sendMoneyHistory);
+
+        walletBalanceRepository.count();
+        {
+          WalletBalance walletBalance = new WalletBalance();
+          walletBalance.setMemberId(cyrusApiMemberId);
+          walletBalance.setBalance(Double.parseDouble(responseDto.getData().getOpening_bal()));
+          walletBalanceRepository.save(walletBalance);
+        }
+
         logger.info("📝 Transaction details saved to history successfully.");
       } else {
         logger.warn("⚠️ 'Send Money' API response did not contain a valid Order ID. Full Response: {}", responseDto);

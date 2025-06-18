@@ -24,7 +24,8 @@ import lombok.Setter;
         @Index(name = "idx_beneficiary_created_at", columnList = "created_at"),
         @Index(name = "idx_beneficiary_bene_type", columnList = "bene_type"),
         @Index(name = "idx_beneficiary_status", columnList = "status"),
-        @Index(name = "idx_beneficiary_beneficiary_id", columnList = "beneficiary_id")
+        @Index(name = "idx_beneficiary_beneficiary_id", columnList = "beneficiary_id"),
+        @Index(name = "idx_beneficiary_member_id", columnList = "member_id"),
     })
 public class Beneficiary {
 
@@ -33,6 +34,9 @@ public class Beneficiary {
   @Column(name = "id", nullable = false)
   @JsonIgnore
   private Long id;
+
+  @Column(name = "member_id")
+  private String memberId;
 
   @Column(name = "beneficiary_id", nullable = false, unique = true)
   private String beneficiaryId;

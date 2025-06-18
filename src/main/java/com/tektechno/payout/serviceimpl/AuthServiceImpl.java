@@ -94,7 +94,7 @@ public class AuthServiceImpl implements AuthService {
 
       LogInUserResponseDto logInUserResponseDto = new LogInUserResponseDto(
           generateJwtToken(createJwtPayloadDto(users, false)),
-          generateJwtToken(createJwtPayloadDto(users, true)),
+          generateRefreshJwtToken(createJwtPayloadDto(users, true)),
           userResponseDto
       );
 
@@ -115,6 +115,7 @@ public class AuthServiceImpl implements AuthService {
     jwtPayloadDto.setFullName(users.getFullName());
     jwtPayloadDto.setActive(users.isStatus());
     jwtPayloadDto.setUserType(users.getUserType().name());
+    jwtPayloadDto.setMemberId(users.getMemberId() != null ? users.getMemberId() : "" );
     if (rt) {
       jwtPayloadDto.setTokenType(TokenType.RT.name());
     } else {
@@ -124,6 +125,16 @@ public class AuthServiceImpl implements AuthService {
   }
 
   private String generateJwtToken(JwtPayloadDto jwtPayloadDto) throws JsonProcessingException {
+    UsernamePasswordAuthenticationToken authenticationToken;
+    authenticationToken = new UsernamePasswordAuthenticationToken(
+        jwtPayloadDto.getMobileNumber(),
+        null
+    );
+    SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+    return jwtAuthUtils.generateToken(authenticationToken, jwtPayloadDto);
+  }
+
+  private String generateRefreshJwtToken(JwtPayloadDto jwtPayloadDto) throws JsonProcessingException {
     UsernamePasswordAuthenticationToken authenticationToken;
     authenticationToken = new UsernamePasswordAuthenticationToken(
         jwtPayloadDto.getMobileNumber(),

@@ -65,6 +65,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/user/**").hasAnyAuthority("USER", "ADMIN", "SUPER_ADMIN")
                 .requestMatchers("/api/v1/payout/**").hasAnyAuthority("SUPER_ADMIN", "ADMIN")
                 .requestMatchers("/api/v1/balance/**").hasAnyAuthority("SUPER_ADMIN", "ADMIN")
+                .requestMatchers("/api/v1/wallet-balance/**").hasAnyAuthority("SUPER_ADMIN", "ADMIN")
                 .anyRequest().fullyAuthenticated());
   }
 

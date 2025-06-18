@@ -49,4 +49,33 @@ public class DecodeJwtTokenUtility {
       return null;
     }
   }
+
+  /**
+   * Retrieves the member ID of the authenticated user.
+   * Extracts the member ID from the JWT payload stored in the security context.
+   * If authentication is null, not authenticated, or the JWT payload is null,
+   * or any exception occurs, it returns null.
+   *
+   * @return The member ID as a String if available, otherwise null.
+   */
+  public String getMemberId() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+    if (authentication == null || !authentication.isAuthenticated()) {
+      return null;
+    }
+
+    JwtPayloadDto jwtPayloadDto = (JwtPayloadDto) authentication.getPrincipal();
+
+    if (jwtPayloadDto == null) {
+      return null;
+    }
+
+    try {
+      return jwtPayloadDto.getMemberId();
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
 }
