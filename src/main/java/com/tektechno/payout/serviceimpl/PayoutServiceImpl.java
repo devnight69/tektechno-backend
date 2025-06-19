@@ -409,8 +409,7 @@ public class PayoutServiceImpl implements PayoutService {
 
         sendMoneyHistoryRepo.save(sendMoneyHistory);
 
-        walletBalanceRepository.count();
-        {
+        if (walletBalanceRepository.count() == 0) {
           WalletBalance walletBalance = new WalletBalance();
           walletBalance.setMemberId(cyrusApiMemberId);
           walletBalance.setBalance(Double.parseDouble(responseDto.getData().getOpening_bal()));
