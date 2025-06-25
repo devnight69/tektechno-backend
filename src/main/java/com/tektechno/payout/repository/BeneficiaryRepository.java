@@ -25,5 +25,7 @@ public interface BeneficiaryRepository extends JpaRepository<Beneficiary, Long> 
       + "b WHERE b.beneficiaryId IN :beneficiaryIds")
   List<BeneficiaryIdNameProjection> findAllByBeneficiaryIdIn(@Param("beneficiaryIds") Set<String> beneficiaryIds);
 
+  Optional<Beneficiary> findByBeneficiaryBankAccountNumberAndStatus(String beneficiaryBankAccountNumber, boolean status);
+
 
 }

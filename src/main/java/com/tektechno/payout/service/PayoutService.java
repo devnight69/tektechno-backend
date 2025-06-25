@@ -31,5 +31,11 @@ public interface PayoutService {
   public ResponseEntity<?> uploadBulkBeneficiary(MultipartFile file,
                                                  AddBulkBeneficiaryRequestDto addBulkBeneficiaryRequestDto);
 
+  public ResponseEntity<?> getBulkUploadTransactionIds(int pageNo, int pageSize, String memberId);
+
+  public ResponseEntity<?> getBulkUploadAmountDetailsUsingTransactionId(String transactionId, String memberId);
+
+  public ResponseEntity<?> acceptOrDeniedBulkPayment(String transactionId, String memberId, boolean status);
+
 
 }

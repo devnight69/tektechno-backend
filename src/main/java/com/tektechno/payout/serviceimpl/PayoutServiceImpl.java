@@ -9,11 +9,16 @@ import com.tektechno.payout.dto.response.AddBeneficiaryResponseDto;
 import com.tektechno.payout.dto.response.BeneficiaryDetailsDto;
 import com.tektechno.payout.dto.response.SendMoneyHistoryResponseDto;
 import com.tektechno.payout.dto.response.SendMoneyResponseDto;
+import com.tektechno.payout.enums.BulkPaymentStatus;
 import com.tektechno.payout.model.Beneficiary;
+import com.tektechno.payout.model.BulkPaymentHistory;
+import com.tektechno.payout.model.BulkPaymentTransactionHistory;
 import com.tektechno.payout.model.SendMoneyHistory;
 import com.tektechno.payout.model.WalletBalance;
 import com.tektechno.payout.projection.BeneficiaryIdNameProjection;
 import com.tektechno.payout.repository.BeneficiaryRepository;
+import com.tektechno.payout.repository.BulkPaymentHistoryRepo;
+import com.tektechno.payout.repository.BulkPaymentTransactionHistoryRepo;
 import com.tektechno.payout.repository.SendMoneyHistoryRepo;
 import com.tektechno.payout.repository.WalletBalanceRepository;
 import com.tektechno.payout.response.BaseResponse;
@@ -22,6 +27,7 @@ import com.tektechno.payout.utilities.ExcelHelper;
 import com.tektechno.payout.utilities.StringUtils;
 import jakarta.transaction.Transactional;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,6 +78,12 @@ public class PayoutServiceImpl implements PayoutService {
 
   @Autowired
   private WalletBalanceRepository walletBalanceRepository;
+
+  @Autowired
+  private BulkPaymentHistoryRepo bulkPaymentHistoryRepo;
+
+  @Autowired
+  private BulkPaymentTransactionHistoryRepo bulkPaymentTransactionHistoryRepo;
 
   @Autowired
   private ObjectMapper objectMapper;
@@ -623,48 +635,100 @@ public class PayoutServiceImpl implements PayoutService {
     }
   }
 
+  @Transactional
   private void saveBeneficiaryDetails(List<Map<String, String>> beneficiaries,
                                       AddBulkBeneficiaryRequestDto addBulkBeneficiaryRequestDto) {
-    beneficiaries.forEach(beneficiary -> {
-      String beneficiaryAccountNumber = beneficiary.get("Beneficiary A/c No.");
-      if (!StringUtils.isNotNullAndNotEmpty(beneficiaryAccountNumber)) {
-        logger.warn("Beneficiary account number is empty. Skipping...");
-        return;
+    try {
+      // Generate unique transaction ID
+      String transactionId;
+      do {
+        transactionId = UUID.randomUUID().toString();
+      } while (bulkPaymentHistoryRepo.existsByTransactionId(transactionId));
+
+      // Save bulk payment header
+      BulkPaymentHistory bulkPaymentHistory = new BulkPaymentHistory();
+      bulkPaymentHistory.setMemberId(cyrusApiMemberId);
+      bulkPaymentHistory.setTransactionId(transactionId);
+      bulkPaymentHistoryRepo.save(bulkPaymentHistory);
+
+      List<BulkPaymentTransactionHistory> transactionHistoryList = new ArrayList<>();
+
+      for (Map<String, String> beneficiary : beneficiaries) {
+        String accountNumber = beneficiary.get("Beneficiary A/c No.");
+        if (!StringUtils.isNotNullAndNotEmpty(accountNumber)) {
+          logger.warn("Skipping: Beneficiary account number is empty.");
+          continue;
+        }
+
+        long amount = parseAmount(beneficiary.get("Transaction Amount"));
+
+        Optional<Beneficiary> optionalBeneficiary = beneficiaryRepository
+            .findByBeneficiaryBankAccountNumberAndStatus(accountNumber, true);
+
+        Long beneficiaryId;
+        String beneficiaryCyrusId;
+        String beneficiaryName;
+        String beneficiaryMobileNumber;
+        String comment = "Payout Of " + new Date(); // Common for all
+        String remarks = "Vendor Payments";
+        String transferType = getSafeValue(beneficiary, "Transaction Type", "IMPS");
+
+        if (optionalBeneficiary.isPresent()) {
+          Beneficiary existing = optionalBeneficiary.get();
+          logger.warn("Beneficiary account number {} already exists. Using existing ID.", accountNumber);
+
+          beneficiaryId = existing.getId();
+          beneficiaryCyrusId = existing.getBeneficiaryId();
+          beneficiaryName = existing.getBeneficiaryName();
+          beneficiaryMobileNumber = existing.getBeneficiaryMobileNumber();
+        } else {
+          logger.info("Beneficiary account number {} not found. Creating new beneficiary...", accountNumber);
+
+          AddBeneficiaryRequestDto dto = new AddBeneficiaryRequestDto();
+          dto.setBeneficiaryAccountNumber(accountNumber);
+          dto.setBeneficiaryName(getSafeValue(beneficiary, "Beneficiary Name"));
+          dto.setBeneficiaryMobileNumber(getSafeValue(beneficiary, "Beneficiary Mobile No"));
+          dto.setBeneficiaryEmail(getSafeValue(beneficiary, "Beneficiary Email ID", addBulkBeneficiaryRequestDto.getBeneficiaryEmail()));
+          dto.setBeneficiaryIfscCode(getSafeValue(beneficiary, "IFSC Code"));
+          dto.setBeneficiaryPanNumber(getSafeValue(beneficiary, "Pan No"));
+          dto.setBeneficiaryAadhaarNumber(addBulkBeneficiaryRequestDto.getBeneficiaryAadhaarNumber());
+          dto.setBeneficiaryBankName(addBulkBeneficiaryRequestDto.getBeneficiaryBankName());
+          dto.setBeneType(addBulkBeneficiaryRequestDto.getBeneType());
+          dto.setLatitude(addBulkBeneficiaryRequestDto.getLatitude());
+          dto.setLongitude(addBulkBeneficiaryRequestDto.getLongitude());
+          dto.setAddress(addBulkBeneficiaryRequestDto.getAddress());
+
+          Beneficiary saved = addBeneficiaryForBulkUpload(dto);
+          beneficiaryId = saved.getId();
+          beneficiaryCyrusId = saved.getBeneficiaryId();
+          beneficiaryName = saved.getBeneficiaryName();
+          beneficiaryMobileNumber = saved.getBeneficiaryMobileNumber();
+        }
+
+        BulkPaymentTransactionHistory txHistory = new BulkPaymentTransactionHistory();
+        txHistory.setTransactionId(transactionId);
+        txHistory.setMemberId(cyrusApiMemberId);
+        txHistory.setBeneficiaryId(beneficiaryId);
+        txHistory.setBeneficiaryCyrusId(beneficiaryCyrusId);
+        txHistory.setBeneficiaryName(beneficiaryName);
+        txHistory.setBeneficiaryMobileNumber(beneficiaryMobileNumber);
+        txHistory.setComment(comment);
+        txHistory.setRemarks(remarks);
+        txHistory.setTransactionType(transferType);
+        txHistory.setAmount(amount);
+        txHistory.setStatus(BulkPaymentStatus.PENDING);
+
+        transactionHistoryList.add(txHistory);
       }
 
-      if (beneficiaryRepository.existsByBeneficiaryBankAccountNumber(beneficiaryAccountNumber)) {
-        logger.warn("Beneficiary account number {} already exists in DB. Skipping...", beneficiaryAccountNumber);
-        return;
+      if (!transactionHistoryList.isEmpty()) {
+        bulkPaymentTransactionHistoryRepo.saveAll(transactionHistoryList);
       }
-
-      logger.info("Beneficiary account number {} does not exist in DB. Adding...", beneficiaryAccountNumber);
-
-      AddBeneficiaryRequestDto requestDto = new AddBeneficiaryRequestDto();
-      requestDto.setBeneficiaryAccountNumber(beneficiaryAccountNumber);
-      requestDto.setBeneficiaryName(StringUtils.isNotNullAndNotEmpty(beneficiary.get("Beneficiary Name")) ?
-          beneficiary.get("Beneficiary Name") : "");
-      requestDto.setBeneficiaryMobileNumber(StringUtils.isNotNullAndNotEmpty(beneficiary.get("Beneficiary Mobile No")) ?
-          beneficiary.get("Beneficiary Mobile No") : "");
-      requestDto.setBeneficiaryEmail(StringUtils.isNotNullAndNotEmpty(beneficiary.get("Beneficiary Email ID")) ?
-          beneficiary.get("Beneficiary Email ID") : addBulkBeneficiaryRequestDto.getBeneficiaryEmail());
-      requestDto.setBeneficiaryIfscCode(StringUtils.isNotNullAndNotEmpty(beneficiary.get("IFSC Code")) ?
-          beneficiary.get("IFSC Code") : "");
-
-      requestDto.setBeneficiaryPanNumber(StringUtils.isNotNullAndNotEmpty(beneficiary.get("Pan No")) ?
-          beneficiary.get("Pan No") : "");
-
-      // requestDto.setBeneficiaryPanNumber(addBulkBeneficiaryRequestDto.getBeneficiaryPanNumber());
-      requestDto.setBeneficiaryAadhaarNumber(addBulkBeneficiaryRequestDto.getBeneficiaryAadhaarNumber());
-      requestDto.setBeneficiaryBankName(addBulkBeneficiaryRequestDto.getBeneficiaryBankName());
-      requestDto.setBeneType(addBulkBeneficiaryRequestDto.getBeneType());
-      requestDto.setLatitude(addBulkBeneficiaryRequestDto.getLatitude());
-      requestDto.setLongitude(addBulkBeneficiaryRequestDto.getLongitude());
-      requestDto.setAddress(addBulkBeneficiaryRequestDto.getAddress());
-
-      addBeneficiary(requestDto);
-    });
+    } catch (Exception e) {
+      logger.error("Error while saving bulk payment details: {}", e.getMessage(), e);
+      throw e; // Rethrow to ensure transaction rollback
+    }
   }
-
 
   private List<SendMoneyHistoryResponseDto> createSendMoneyHistoryResponseDto(List<SendMoneyHistory> sendMoneyHistories) {
     List<SendMoneyHistoryResponseDto> responseDtos = new ArrayList<>();
@@ -691,6 +755,285 @@ public class PayoutServiceImpl implements PayoutService {
     return beneficiaryRepository
         .findAllByBeneficiaryIdIn(beneficiaryIds).stream()
         .collect(Collectors.toMap(BeneficiaryIdNameProjection::getId, BeneficiaryIdNameProjection::getName));
+  }
+
+  @Transactional
+  public Beneficiary addBeneficiaryForBulkUpload(AddBeneficiaryRequestDto requestDto) {
+    String url = cyrusRechargeApiEndpoint + CyrusApiConstant.ADD_BENEFICIARY_URL;
+    logger.info("Initiating Add Beneficiary process. Endpoint In Bulk Upload: {}", url);
+
+    try {
+
+      String address = objectMapper.writeValueAsString(requestDto.getAddress());
+
+      // Prepare form data
+      MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+      formData.add("MerchantID", cyrusApiMemberId);
+      formData.add("MerchantKey", cyrusPayoutApiKey);
+      formData.add("MethodName", "GET_BENEFICIARY");
+      formData.add("pay_type", "account_number");
+      formData.add("beneficiary_bank_account_number", requestDto.getBeneficiaryAccountNumber());
+      formData.add("beneficiary_bank_ifsc_code", requestDto.getBeneficiaryIfscCode());
+      formData.add("beneficiary_name", requestDto.getBeneficiaryName());
+      formData.add("beneficiary_email", requestDto.getBeneficiaryEmail());
+      formData.add("beneficiary_phone", requestDto.getBeneficiaryMobileNumber());
+      formData.add("beneficiary_pan", requestDto.getBeneficiaryPanNumber());
+      formData.add("beneficiary_aadhar", requestDto.getBeneficiaryAadhaarNumber());
+      formData.add("is_agreement_with_beneficiary", "YES");
+      formData.add("beneficiary_verification_status", "YES");
+      formData.add("beneficiary_address", address);
+      formData.add("bene_type", requestDto.getBeneType());
+      formData.add("latlong", requestDto.getLatitude() + "," + requestDto.getLongitude());
+      // Set headers
+      HttpHeaders headers = new HttpHeaders();
+      headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+      HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(formData, headers);
+
+      logger.info("Sending request to Cyrus API with payload In Bulk Upload: {}", formData);
+
+      // Make API call
+      ResponseEntity<String> apiResponse = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
+      logger.info("Received response from Cyrus API In Bulk Upload: {}", apiResponse.getBody());
+
+      // Convert response
+      AddBeneficiaryResponseDto responseDto = objectMapper.readValue(apiResponse.getBody(), AddBeneficiaryResponseDto.class);
+
+      // Process response
+      if ("SUCCESS".equalsIgnoreCase(responseDto.getData().getStatus())) {
+        Beneficiary beneficiary = new Beneficiary();
+        beneficiary.setMemberId(cyrusApiMemberId);
+        beneficiary.setBeneficiaryId(responseDto.getData().getBeneficiaryId());
+        beneficiary.setBeneType(requestDto.getBeneType());
+        beneficiary.setBeneficiaryBankAccountNumber(requestDto.getBeneficiaryAccountNumber());
+        beneficiary.setBeneficiaryBankIfscCode(requestDto.getBeneficiaryIfscCode()); // Validate name != IFSC
+        beneficiary.setBeneficiaryBankName(requestDto.getBeneficiaryBankName());
+        beneficiary.setBeneficiaryName(requestDto.getBeneficiaryName());
+        beneficiary.setBeneficiaryEmail(requestDto.getBeneficiaryEmail());
+        beneficiary.setBeneficiaryMobileNumber(requestDto.getBeneficiaryMobileNumber());
+        beneficiary.setBeneficiaryPan(requestDto.getBeneficiaryPanNumber());
+        beneficiary.setBeneficiaryAadhaar(requestDto.getBeneficiaryAadhaarNumber());
+        beneficiary.setBeneficiaryAddress(address);
+        beneficiary.setLatitude(requestDto.getLatitude());
+        beneficiary.setLongitude(requestDto.getLongitude());
+
+        beneficiary = beneficiaryRepository.save(beneficiary);
+        logger.info("Beneficiary saved to DB successfully. ID: {}", beneficiary.getBeneficiaryId());
+
+        return beneficiary;
+      }
+
+      logger.warn("Failed to add beneficiary. Response: {}", responseDto);
+      return null;
+
+    } catch (Exception e) {
+      logger.error("Exception occurred while processing Add Beneficiary request", e);
+      return null;
+    }
+  }
+
+  private long parseAmount(String amountStr) {
+    if (StringUtils.isNotNullAndNotEmpty(amountStr)) {
+      try {
+        return Long.parseLong(amountStr);
+      } catch (NumberFormatException e) {
+        logger.error("Invalid transaction amount: '{}'. Defaulting to 0.", amountStr);
+      }
+    }
+    return 0L;
+  }
+
+  private String getSafeValue(Map<String, String> map, String key) {
+    return getSafeValue(map, key, "");
+  }
+
+  private String getSafeValue(Map<String, String> map, String key, String defaultValue) {
+    String value = map.get(key);
+    return StringUtils.isNotNullAndNotEmpty(value) ? value : defaultValue;
+  }
+
+  /**
+   * Retrieves paginated bulk upload transaction history for a specific member.
+   *
+   * @param pageNo   the page number (zero-based)
+   * @param pageSize the number of records per page
+   * @param memberId the member ID to filter transaction history
+   * @return ResponseEntity containing paginated transaction details or error response
+   */
+  @Override
+  public ResponseEntity<?> getBulkUploadTransactionIds(int pageNo, int pageSize, String memberId) {
+    logger.info("Fetching bulk upload transaction history for memberId: {}, pageNo: {}, pageSize: {}",
+        memberId, pageNo, pageSize);
+
+    try {
+      Pageable pageable = PageRequest.of(pageNo, pageSize, Sort.by("createdAt").descending());
+      Page<BulkPaymentHistory> bulkPaymentHistoryPage = bulkPaymentHistoryRepo.findByMemberIdOrderByCreatedAtDesc(
+          memberId, pageable);
+
+      Map<String, Object> response = new HashMap<>();
+      response.put("transactionHistory", bulkPaymentHistoryPage.getContent());
+      response.put("totalPages", bulkPaymentHistoryPage.getTotalPages());
+      response.put("totalElements", bulkPaymentHistoryPage.getTotalElements());
+      response.put("currentPage", bulkPaymentHistoryPage.getNumber());
+
+      logger.info("Successfully fetched {} records for memberId: {}",
+          bulkPaymentHistoryPage.getNumberOfElements(), memberId);
+      return baseResponse.successResponse("Transaction history fetched successfully", response);
+
+    } catch (Exception e) {
+      logger.error("Error occurred while fetching bulk upload transaction IDs for memberId: {}", memberId, e);
+      return baseResponse.errorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
+          "Failed to fetch transaction history. Please try again later.");
+    }
+  }
+
+  @Override
+  public ResponseEntity<?> getBulkUploadAmountDetailsUsingTransactionId(String transactionId, String memberId) {
+    try {
+      List<BulkPaymentTransactionHistory> transactions =
+          bulkPaymentTransactionHistoryRepo.findByTransactionIdAndMemberIdOrderByCreatedAtDesc(transactionId, memberId);
+
+      if (transactions.isEmpty()) {
+        return baseResponse.successResponse("Beneficiary Details Not Found", List.of());
+      }
+
+      return baseResponse.successResponse(transactions);
+
+    } catch (Exception e) {
+      return baseResponse.errorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "");
+    }
+  }
+
+  @Override
+  public ResponseEntity<?> acceptOrDeniedBulkPayment(String transactionId, String memberId, boolean status) {
+    try {
+
+      if (!status) {
+        updateBulkPaymentStatus(memberId, transactionId, BulkPaymentStatus.DENIED);
+        return baseResponse.successResponse("All Payment Denied Successfully");
+      }
+
+      List<BulkPaymentTransactionHistory> transactionHistoryList =
+          bulkPaymentTransactionHistoryRepo.findByTransactionIdAndMemberIdOrderByCreatedAtDesc(transactionId, memberId);
+
+      if (transactionHistoryList.isEmpty()) {
+        logger.warn("❗ No bulk payment transaction history found for transactionId: {} and memberId: {}",
+            transactionId, memberId);
+        return baseResponse.errorResponse(HttpStatus.NOT_FOUND, "No bulk payment records found.");
+      }
+
+      logger.info("🧾 Processing {} bulk payment transactions for transactionId: {}",
+          transactionHistoryList.size(), transactionId);
+
+      for (BulkPaymentTransactionHistory transaction : transactionHistoryList) {
+        SendMoneyRequestDto requestDto = new SendMoneyRequestDto();
+        requestDto.setAmount(transaction.getAmount());
+        requestDto.setBeneficiaryId(transaction.getBeneficiaryCyrusId());
+        requestDto.setBeneficiaryName(transaction.getBeneficiaryName());
+        requestDto.setBeneficiaryMobileNumber(transaction.getBeneficiaryMobileNumber());
+        requestDto.setTransferType(transaction.getTransactionType());
+        requestDto.setComment(transaction.getComment());
+        requestDto.setRemarks(transaction.getRemarks());
+
+        boolean success = sendMoneyBulk(requestDto);
+
+        transaction.setStatus(success ? BulkPaymentStatus.COMPLETED : BulkPaymentStatus.FAILED);
+        bulkPaymentTransactionHistoryRepo.save(transaction); // Optional: batch save after loop
+      }
+
+      logger.info("✅ Completed processing bulk payment for transactionId: {}", transactionId);
+      return baseResponse.successResponse("Bulk payment processed successfully.");
+
+    } catch (Exception e) {
+      logger.error("❌ Error while processing bulk payment for transactionId: {} - {}",
+          transactionId, e.getMessage(), e);
+      return baseResponse.errorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
+          "Failed to process bulk payment.");
+    }
+  }
+
+  @Transactional
+  public boolean sendMoneyBulk(SendMoneyRequestDto requestDto) {
+    String beneficiaryId = requestDto.getBeneficiaryId();
+    String url = cyrusRechargeApiEndpoint + CyrusApiConstant.SEND_MONEY_URL;
+    String generatedOrderId = UUID.randomUUID().toString();
+
+    try {
+      logger.info("🚀 Sending money to Beneficiary ID: {}", beneficiaryId);
+
+      // Prepare form data
+      MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+      formData.add("MerchantID", cyrusApiMemberId);
+      formData.add("MerchantKey", cyrusPayoutApiKey);
+      formData.add("MethodName", "sendmoney");
+      formData.add("orderId", generatedOrderId);
+      formData.add("Name", requestDto.getBeneficiaryName());
+      formData.add("amount", String.valueOf(requestDto.getAmount()));
+      formData.add("MobileNo", requestDto.getBeneficiaryMobileNumber());
+      formData.add("comments", requestDto.getComment());
+      formData.add("TransferType", requestDto.getTransferType());
+      formData.add("beneficiaryid", beneficiaryId);
+      formData.add("remarks", requestDto.getRemarks());
+
+      logger.debug("📨 Form Data for Cyrus API: {}", formData);
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+      HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(formData, headers);
+
+      logger.info("📡 Calling Cyrus API at: {}", url);
+      ResponseEntity<String> apiResponse = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
+
+      logger.info("✅ Received response from Cyrus API: {}", apiResponse.getBody());
+
+      SendMoneyResponseDto responseDto = objectMapper.readValue(apiResponse.getBody(), SendMoneyResponseDto.class);
+
+      if (responseDto.getData() != null && StringUtils.isNotNullAndNotEmpty(responseDto.getData().getOrderId())) {
+        logger.info("💸 Money sent successfully. Order ID: {}", responseDto.getData().getOrderId());
+
+        SendMoneyHistory history = new SendMoneyHistory();
+        history.setMemberId(cyrusApiMemberId);
+        history.setBeneficiaryId(beneficiaryId);
+        history.setStatus(responseDto.getStatus());
+        history.setOrderId(responseDto.getData().getOrderId());
+        history.setCyrusOrderId(responseDto.getData().getCyrusOrderId());
+        history.setCyrusId(responseDto.getData().getCyrus_id());
+        history.setRrnNumber(responseDto.getData().getRrn());
+        history.setOpeningBalance(responseDto.getData().getOpening_bal());
+        history.setLockedAmount(responseDto.getData().getLocked_amt());
+        history.setChargedAmount(responseDto.getData().getCharged_amt());
+
+        sendMoneyHistoryRepo.save(history);
+        logger.info("📝 Saved SendMoneyHistory successfully.");
+
+        if (walletBalanceRepository.count() == 0) {
+          WalletBalance walletBalance = new WalletBalance();
+          walletBalance.setMemberId(cyrusApiMemberId);
+          walletBalance.setBalance(Double.parseDouble(responseDto.getData().getOpening_bal()));
+          walletBalanceRepository.save(walletBalance);
+          logger.info("💰 Wallet balance initialized successfully.");
+        }
+
+        return true;
+      } else {
+        logger.warn("⚠️ No valid Order ID received from API. Full Response: {}", responseDto);
+        return false;
+      }
+
+    } catch (Exception e) {
+      logger.error("❌ Exception during sendMoneyBulk for Beneficiary ID: {} - {}", beneficiaryId, e.getMessage(), e);
+      return false;
+    }
+  }
+
+  @Transactional
+  public void updateBulkPaymentStatus(String memberId, String transactionId, BulkPaymentStatus status) {
+    int updated = bulkPaymentHistoryRepo.updateStatusByMemberIdAndTransactionId(status, memberId, transactionId);
+    if (updated > 0) {
+      logger.info("✅ Updated bulk payment status to {} for transactionId: {}, memberId: {}",
+          status, transactionId, memberId);
+    } else {
+      logger.warn("⚠️ No record found to update status for transactionId: {}, memberId: {}", transactionId, memberId);
+    }
   }
 
 

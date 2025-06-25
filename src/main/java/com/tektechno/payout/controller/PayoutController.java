@@ -4,6 +4,7 @@ import com.tektechno.payout.dto.request.AddBeneficiaryRequestDto;
 import com.tektechno.payout.dto.request.AddBulkBeneficiaryRequestDto;
 import com.tektechno.payout.dto.request.SendMoneyRequestDto;
 import com.tektechno.payout.service.PayoutService;
+import com.tektechno.payout.utilities.DecodeJwtTokenUtility;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,9 @@ public class PayoutController {
 
   @Autowired
   private PayoutService payoutService;
+
+  @Autowired
+  private DecodeJwtTokenUtility decodeJwtTokenUtility;
 
   @GetMapping("/beneficiary-type")
   public ResponseEntity<?> getBeneType() {
@@ -85,6 +89,26 @@ public class PayoutController {
       @RequestPart("file") MultipartFile file,
       @Valid @RequestPart("data") AddBulkBeneficiaryRequestDto addBulkBeneficiaryRequestDto) {
     return payoutService.uploadBulkBeneficiary(file, addBulkBeneficiaryRequestDto);
+  }
+
+  @GetMapping("/bulk-upload-transaction-ids")
+  public ResponseEntity<?> getBulkUploadTransactionIds(@RequestParam(defaultValue = "0") int pageNo,
+                                                       @RequestParam(defaultValue = "10") int pageSize) {
+    String memberId = decodeJwtTokenUtility.getMemberId();
+    return payoutService.getBulkUploadTransactionIds(pageNo, pageSize, memberId);
+  }
+
+  @GetMapping("/bulk-upload-amount-details-by-transaction-id")
+  public ResponseEntity<?> getBulkUploadAmountDetailsUsingTransactionId(@RequestParam String transactionId) {
+    String memberId = decodeJwtTokenUtility.getMemberId();
+    return payoutService.getBulkUploadAmountDetailsUsingTransactionId(transactionId, memberId);
+  }
+
+  @PostMapping("/bulk-upload-payment-accept-or-denied")
+  public ResponseEntity<?> acceptOrDeniedBulkPayment(@RequestParam String transactionId,
+                                                     @RequestParam boolean status) {
+    String memberId = decodeJwtTokenUtility.getMemberId();
+    return payoutService.acceptOrDeniedBulkPayment(transactionId, memberId, status);
   }
 
 
