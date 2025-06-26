@@ -1,9 +1,13 @@
 package com.tektechno.payout.serviceimpl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tektechno.payout.constant.CyrusApiConstant;
+import com.tektechno.payout.dto.response.ApiResponse;
 import com.tektechno.payout.response.BaseResponse;
 import com.tektechno.payout.service.BalanceService;
+import com.tektechno.payout.service.WalletBalanceService;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +44,9 @@ public class BalanceServiceImpl implements BalanceService {
   @Autowired
   private ObjectMapper objectMapper;
 
+  @Autowired
+  private WalletBalanceService walletBalanceService;
+
   private static final Logger logger = LoggerFactory.getLogger(BalanceServiceImpl.class);
 
   @Override
@@ -60,9 +67,25 @@ public class BalanceServiceImpl implements BalanceService {
       logger.info("Cyrus Get Balance API responded with status: {}", response.getStatusCode());
       logger.debug("Response Body from Cyrus Get Balance API: {}", response.getBody());
 
-      Object responseObject = objectMapper.readValue(response.getBody(), Object.class);
+      List<ApiResponse> responseList = objectMapper.readValue(response.getBody(),
+          new TypeReference<List<ApiResponse>>() {
+          });
 
-      return baseResponse.successResponse(responseObject);
+      if (!responseList.isEmpty()) {
+        ApiResponse apiResponse = responseList.getFirst();
+        List<ApiResponse.BalanceData> data = apiResponse.getData();
+
+        if (data != null && !data.isEmpty()) {
+          double balance = data.getFirst().getBalance();
+          if (walletBalanceService.updateWalletBalance(cyrusApiMemberId, balance)) {
+            logger.info("Successfully updated wallet balance for memberId: {}", cyrusApiMemberId);
+          } else {
+            logger.error("Failed to update wallet balance for memberId: {}", cyrusApiMemberId);
+          }
+        }
+      }
+
+      return baseResponse.successResponse(responseList);
 
     } catch (HttpClientErrorException ex) {
       logger.error("Client error while calling Cyrus Get Balance API: Status Code = {}, Response Body = {}",
