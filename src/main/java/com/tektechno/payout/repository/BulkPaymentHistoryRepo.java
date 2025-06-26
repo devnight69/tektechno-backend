@@ -31,4 +31,6 @@ public interface BulkPaymentHistoryRepo extends JpaRepository<BulkPaymentHistory
                                              @Param("memberId") String memberId,
                                              @Param("transactionId") String transactionId);
 
+  long countByMemberId(String memberId);
+
 }

@@ -642,7 +642,7 @@ public class PayoutServiceImpl implements PayoutService {
       // Generate unique transaction ID
       String transactionId;
       do {
-        transactionId = UUID.randomUUID().toString();
+        transactionId = "TXN-" + bulkPaymentHistoryRepo.countByMemberId(cyrusApiMemberId);
       } while (bulkPaymentHistoryRepo.existsByTransactionId(transactionId));
 
       // Save bulk payment header
