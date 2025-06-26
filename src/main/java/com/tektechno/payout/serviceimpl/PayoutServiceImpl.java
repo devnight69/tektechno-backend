@@ -941,6 +941,7 @@ public class PayoutServiceImpl implements PayoutService {
       }
 
       logger.info("✅ Completed processing bulk payment for transactionId: {}", transactionId);
+      updateBulkPaymentStatus(memberId, transactionId, BulkPaymentStatus.APPROVED);
       return baseResponse.successResponse("Bulk payment processed successfully.");
 
     } catch (Exception e) {
@@ -1004,14 +1005,6 @@ public class PayoutServiceImpl implements PayoutService {
 
         sendMoneyHistoryRepo.save(history);
         logger.info("📝 Saved SendMoneyHistory successfully.");
-
-        if (walletBalanceRepository.count() == 0) {
-          WalletBalance walletBalance = new WalletBalance();
-          walletBalance.setMemberId(cyrusApiMemberId);
-          walletBalance.setBalance(Double.parseDouble(responseDto.getData().getOpening_bal()));
-          walletBalanceRepository.save(walletBalance);
-          logger.info("💰 Wallet balance initialized successfully.");
-        }
 
         return true;
       } else {
